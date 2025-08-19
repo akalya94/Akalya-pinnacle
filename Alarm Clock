@@ -1,0 +1,64 @@
+import time
+import datetime
+import threading
+import os
+from playsound import playsound
+
+class Alarm:
+    def __init__(self, alarm_time, tone_path, snooze_minutes=5):
+        self.alarm_time = alarm_time
+        self.tone_path = tone_path
+        self.snooze_minutes = snooze_minutes
+        self.active = True
+
+    def play_alarm(self):
+        print("\n🔔 Alarm ringing!")
+        try:
+            playsound(self.tone_path)
+        except Exception as e:
+            print(f"❌ Could not play sound: {e}")
+
+    def ask_snooze(self):
+        while True:
+            response = input("😴 Snooze for {} minutes? (y/n): ".format(self.snooze_minutes)).lower()
+            if response == 'y':
+                snooze_until = datetime.datetime.now() + datetime.timedelta(minutes=self.snooze_minutes)
+                print(f"⏰ Snoozed until {snooze_until.strftime('%H:%M:%S')}")
+                time.sleep(self.snooze_minutes * 60)
+                self.ring()
+                break
+            elif response == 'n':
+                print("✅ Alarm dismissed.")
+                self.active = False
+                break
+            else:
+                print("Please enter 'y' or 'n'.")
+
+    def ring(self):
+        self.play_alarm()
+        self.ask_snooze()
+
+    def start(self):
+        def check_alarm():
+            print(f"🕒 Alarm set for {self.alarm_time.strftime('%H:%M:%S')}")
+            while self.active:
+                now = datetime.datetime.now()
+                if now >= self.alarm_time:
+                    self.ring()
+                    break
+                time.sleep(1)
+        threading.Thread(target=check_alarm, daemon=True).start()
+
+
+def get_user_input():
+    print("⏰ --- Alarm Setup ---")
+    hour = int(input("Enter hour (0-23): "))
+    minute = int(input("Enter minute (0-59): "))
+    tone_path = input("Enter path to alarm tone (e.g., 'tone.mp3'): ")
+    if not os.path.exists(tone_path):
+        print("❌ Tone file not found!")
+        exit()
+    snooze = int(input("Enter snooze duration in minutes: "))
+
+    now = datetime.datetime.now()
+    alarm_time = now.replace(hour=hour, minute=minute,_
