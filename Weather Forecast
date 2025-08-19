@@ -1,0 +1,82 @@
+import requests
+import tkinter as tk
+from tkinter import messagebox
+
+# -------------------- CONFIG --------------------
+WEATHER_API_KEY = 'YOUR_OPENWEATHERMAP_API_KEY'  # Replace with your API key
+# ------------------------------------------------
+
+def get_location():
+    """Get user location based on IP address"""
+    try:
+        response = requests.get('https://ipinfo.io/json')
+        data = response.json()
+        loc = data['loc'].split(',')
+        city = data['city']
+        country = data['country']
+        return {
+            'latitude': loc[0],
+            'longitude': loc[1],
+            'city': city,
+            'country': country
+        }
+    except Exception as e:
+        messagebox.showerror("Location Error", f"Could not determine location:\n{e}")
+        return None
+
+def get_weather(lat, lon):
+    """Fetch weather data using OpenWeatherMap API"""
+    try:
+        url = f'https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric'
+        response = requests.get(url)
+        return response.json()
+    except Exception as e:
+        messagebox.showerror("API Error", f"Could not fetch weather data:\n{e}")
+        return None
+
+def display_weather():
+    location = get_location()
+    if not location:
+        return
+
+    weather_data = get_weather(location['latitude'], location['longitude'])
+    if not weather_data or weather_data.get('cod') != 200:
+        messagebox.showerror("Weather Error", "Could not fetch valid weather data.")
+        return
+
+    # Parse weather info
+    city = location['city']
+    country = location['country']
+    temp = weather_data['main']['temp']
+    feels_like = weather_data['main']['feels_like']
+    condition = weather_data['weather'][0]['description'].title()
+    humidity = weather_data['main']['humidity']
+    wind_speed = weather_data['wind']['speed']
+
+    # Update GUI
+    weather_info.set(
+        f"📍 Location: {city}, {country}\n"
+        f"🌡️ Temperature: {temp} °C\n"
+        f"🤔 Feels Like: {feels_like} °C\n"
+        f"☁️ Condition: {condition}\n"
+        f"💧 Humidity: {humidity}%\n"
+        f"💨 Wind Speed: {wind_speed} m/s"
+    )
+
+# ---------------- GUI Setup ----------------
+
+app = tk.Tk()
+app.title("Real-Time Weather App")
+app.geometry("350x300")
+app.resizable(False, False)
+
+weather_info = tk.StringVar()
+weather_info.set("Click the button to fetch weather info.")
+
+label = tk.Label(app, textvariable=weather_info, font=("Helvetica", 12), justify="left", wraplength=320)
+label.pack(pady=20)
+
+button = tk.Button(app, text="Get Weather", command=display_weather, font=("Helvetica", 12), bg="#4CAF50", fg="white")
+button.pack(pady=10)
+
+app.mainloop()
